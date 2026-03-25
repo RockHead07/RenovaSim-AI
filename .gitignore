@@ -1,21 +1,31 @@
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
+*.pyd
+.Python
 
-# Virtual env
+# Virtual environment
+.venv/
 venv/
+env/
+
+# Environment variables — NEVER commit secrets
 .env
 
-# Jupyter
-.ipynb_checkpoints/
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.iml
 
 # OS
 .DS_Store
+Thumbs.db
 
 # Logs
 *.log
-
-# Model / dataset (opsional, kalau gede)
-models/
-data/
