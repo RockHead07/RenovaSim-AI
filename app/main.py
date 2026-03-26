@@ -4,8 +4,9 @@
 # ---------------------------------------------------------------------------
 
 import logging
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from app.config import settings
 from app.api.estimate import router as estimate_router
 
@@ -35,11 +36,35 @@ app = FastAPI(
 )
 
 # ---------------------------------------------------------------------------
-# Global error handler — consistent error shape across the whole API
+# Custom 422 handler — clean, consistent validation error shape
+# ---------------------------------------------------------------------------
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    details = []
+    for error in exc.errors():
+        field = " → ".join(str(loc) for loc in error["loc"] if loc != "body")
+        details.append({
+            "field": field or "unknown",
+            "message": error["msg"],
+        })
+
+    logger.warning(f"Validation error on {request.url.path}: {details}")
+
+    return JSONResponse(
+        status_code=422,
+        content={
+            "success": False,
+            "error": "Validation failed",
+            "details": details,
+        },
+    )
+
+# ---------------------------------------------------------------------------
+# Global 500 handler — catch anything unexpected
 # ---------------------------------------------------------------------------
 @app.exception_handler(Exception)
-async def global_exception_handler(request, exc):
-    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled exception on {request.url.path}: {exc}", exc_info=True)
     return JSONResponse(
         status_code=500,
         content={
