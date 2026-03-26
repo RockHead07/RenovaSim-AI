@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.1.0"
     APP_DEBUG: bool = False
     APP_ENV: str = "development"
+    DATABASE_URL: str = "sqlite:///./renovasim.db"   # ← add this line
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -20,5 +21,4 @@ class Settings(BaseSettings):
     )
 
 
-# Single shared instance — import this everywhere
 settings = Settings()
