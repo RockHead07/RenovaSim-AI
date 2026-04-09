@@ -1,31 +1,41 @@
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.Python
+# Laravel
+/vendor/
+/node_modules/
+/public/build/
+/public/hot/
+/public/storage/
+/storage/*.key
+/bootstrap/cache/
 
-# Virtual environment
-.venv/
-venv/
-env/
-
-# Environment variables — NEVER commit secrets
+# Environment
 .env
+.env.backup
+.env.production
 
-# Distribution / packaging
-dist/
-build/
-*.egg-info/
+# Database
+database/database.sqlite
+database/*.sqlite
+
+# Compiled assets
+/public/css/app.css
+/public/js/app.js
+
+# Logs & cache
+*.log
+/storage/logs/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/views/
+
+# OS
+.DS_Store
+Thumbs.db
 
 # IDE
 .vscode/
 .idea/
 *.iml
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
+# Testing
+/coverage/
+.phpunit.result.cache

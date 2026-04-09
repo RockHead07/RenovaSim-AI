@@ -1,0 +1,16 @@
+# ---------------------------------------------------------------------------
+# docker-compose.yml
+# Runs RenovaSim AI with a single command: docker compose up
+# ---------------------------------------------------------------------------
+
+services:
+  api:
+    build: .
+    container_name: renovasim-api
+    ports:
+      - "8000:8000"         # host:container
+    volumes:
+      - ./renovasim.db:/app/renovasim.db   # persist DB outside the container
+    env_file:
+      - .env.production
+    restart: unless-stopped

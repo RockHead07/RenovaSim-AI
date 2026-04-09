@@ -4,6 +4,7 @@
 # ---------------------------------------------------------------------------
 
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -26,6 +27,24 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
+# Lifespan — modern startup/shutdown handler (replaces @app.on_event)
+# ---------------------------------------------------------------------------
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # --- Startup ---
+    logger.info("Initialising database...")
+    init_db()
+    with Session(engine) as session:
+        seed_job_types(session)
+    logger.info("Database ready.")
+
+    yield  # app is running
+
+    # --- Shutdown ---
+    logger.info("Shutting down...")
+
+
+# ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
 app = FastAPI(
@@ -37,18 +56,8 @@ app = FastAPI(
         "based on job type and area (m²)."
     ),
     debug=settings.APP_DEBUG,
+    lifespan=lifespan,
 )
-
-# ---------------------------------------------------------------------------
-# Startup — create tables and seed default data
-# ---------------------------------------------------------------------------
-@app.on_event("startup")
-def on_startup():
-    logger.info("Initialising database...")
-    init_db()
-    with Session(engine) as session:
-        seed_job_types(session)
-    logger.info("Database ready.")
 
 # ---------------------------------------------------------------------------
 # Custom 422 handler — clean, consistent validation error shape
