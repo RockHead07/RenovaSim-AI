@@ -11,6 +11,7 @@ from fastapi.exceptions import RequestValidationError
 from app.config import settings
 from app.api.estimate import router as estimate_router
 from app.api.job_types import router as job_types_router
+from app.api.estimate_v2 import router as estimate_v2_router
 from app.db.session import init_db, engine
 from app.db.seeder import seed_job_types
 from sqlmodel import Session
@@ -100,5 +101,6 @@ async def global_exception_handler(request: Request, exc: Exception):
 # ---------------------------------------------------------------------------
 app.include_router(estimate_router, prefix="/api")
 app.include_router(job_types_router, prefix="/api")
+app.include_router(estimate_v2_router, prefix="/api")
 
 logger.info(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} started [{settings.APP_ENV}]")
