@@ -105,3 +105,21 @@ class RefineRequest(BaseModel):
 class RefineResponse(EstimateV2Response):
     """Refine response — same as v2 but with a refinement note."""
     refinement_note: str
+
+
+class EstimateAIRequest(BaseModel):
+    """Request for AI-powered free-text estimation."""
+    project_name: str = Field(default="Proyek Renovasi", description="Nama project")
+    text: str = Field(
+        ...,
+        min_length=3,
+        description="Deskripsi renovasi dalam bahasa bebas",
+        examples=["mau cat ruang tamu 4x5 pakai cat bagus di jakarta"],
+    )
+    budget: float | None = Field(default=None, gt=0, description="Budget opsional untuk sanity check")
+
+
+class EstimateAIResponse(EstimateV2Response):
+    """AI estimate response — same as v2 with LLM metadata."""
+    llm_used: bool
+    llm_extracted: dict | None

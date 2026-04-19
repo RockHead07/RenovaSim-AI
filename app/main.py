@@ -13,6 +13,7 @@ from app.api.estimate import router as estimate_router
 from app.api.job_types import router as job_types_router
 from app.api.estimate_v2 import router as estimate_v2_router
 from app.api.estimate_refine import router as estimate_refine_router
+from app.api.estimate_ai import router as estimate_ai_router
 from app.db.session import init_db, engine
 from app.db.seeder import seed_job_types
 from sqlmodel import Session
@@ -100,5 +101,6 @@ app.include_router(estimate_router, prefix="/api")
 app.include_router(job_types_router, prefix="/api")
 app.include_router(estimate_v2_router, prefix="/api")
 app.include_router(estimate_refine_router, prefix="/api")
+app.include_router(estimate_ai_router, prefix="/api")
 
 logger.info(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} started [{settings.APP_ENV}]")
