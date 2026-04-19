@@ -1,1 +1,101 @@
+# ---------------------------------------------------------------------------
+# refiner.py
+# Logic for updating assumptions in-place based on user corrections.
+# User corrects → system recalculates — no need to start from scratch.
+# ---------------------------------------------------------------------------
 
+import logging
+from app.services.parser import parse_input
+from app.services.assumption import build_assumptions
+from app.services.pricing import calculate_total
+from app.services.sanity import run_sanity_checks
+from app.services.response_builder import build_response
+
+logger = logging.getLogger(__name__)
+
+
+def refine_estimate(
+    previous_response: dict,
+    corrections: dict,
+) -> dict:
+    """
+    Apply user corrections to a previous estimate and recalculate.
+
+    corrections can include:
+    - area: float
+    - quality: str
+    - location: str
+    - scope: str
+    - job_type: str
+    - budget: float
+    """
+    logger.info(f"Refining estimate with corrections: {list(corrections.keys())}")
+
+    project_name = previous_response.get("project_name", "Proyek Renovasi")
+
+    # Extract previous assumptions
+    prev_assumptions = {
+        item["field"]: item["value"]
+        for item in previous_response.get("assumptions", [])
+    }
+
+    # Merge: corrections override previous assumptions
+    merged = {**prev_assumptions, **corrections}
+
+    # Extract previous job types from breakdown
+    breakdown = previous_response.get("breakdown", [])
+    prev_job_types = [job["job_type"] for job in breakdown] if breakdown else []
+
+    # Re-parse with corrected values
+    parsed = parse_input(
+        area=corrections.get("area") or merged.get("area"),
+        job_type=corrections.get("job_type"),
+        quality=corrections.get("quality") or merged.get("quality"),
+        location=corrections.get("location") or merged.get("location"),
+        scope=corrections.get("scope") or merged.get("scope"),
+    )
+
+    # Preserve previous job types if none detected from corrections
+    if not parsed.job_type and not parsed.room and prev_job_types:
+        parsed.job_type = prev_job_types[0]
+
+    # Build new assumptions
+    assumptions = build_assumptions(
+        parsed,
+        location=corrections.get("location") or merged.get("location"),
+    )
+
+    # Preserve previous job types if still empty
+    if not assumptions.job_types and prev_job_types:
+        assumptions.job_types = prev_job_types
+
+    # Recalculate
+    pricing = calculate_total(assumptions)
+
+    warnings = run_sanity_checks(
+        total_min=pricing["total_min"],
+        total_max=pricing["total_max"],
+        area=assumptions.area.value,
+        user_budget=corrections.get("budget"),
+    )
+
+    response = build_response(
+        project_name=project_name,
+        assumptions=assumptions,
+        pricing=pricing,
+        warnings=warnings,
+        conflicts=parsed.conflicts,
+    )
+
+    # Add refinement note
+    corrected_fields = list(corrections.keys())
+    response["refinement_note"] = (
+        f"Estimasi diperbarui berdasarkan koreksi: {', '.join(corrected_fields)}"
+    )
+
+    logger.info(
+        f"Refined — confidence={assumptions.confidence_score}, "
+        f"range={pricing['display']}"
+    )
+
+    return response

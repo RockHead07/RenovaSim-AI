@@ -75,3 +75,33 @@ class EstimateV2Response(BaseModel):
     conflicts_resolved: list[dict]
     clarification_needed: str | None
     disclaimer: str
+
+
+class RefineRequest(BaseModel):
+    """Request to refine a previous estimate with user corrections."""
+    previous_result: dict = Field(..., description="The full previous estimate response")
+    corrections: dict = Field(
+        ...,
+        description="Fields to correct: area, quality, location, scope, job_type, budget",
+        examples=[{"area": 18, "quality": "premium"}],
+    )
+
+
+class RefineResponse(EstimateV2Response):
+    """Refine response — same as v2 but with a refinement note."""
+    refinement_note: str
+
+
+class RefineRequest(BaseModel):
+    """Request to refine a previous estimate with user corrections."""
+    previous_result: dict = Field(..., description="The full previous estimate response")
+    corrections: dict = Field(
+        ...,
+        description="Fields to correct: area, quality, location, scope, job_type, budget",
+        examples=[{"area": 18, "quality": "premium"}],
+    )
+
+
+class RefineResponse(EstimateV2Response):
+    """Refine response — same as v2 but with a refinement note."""
+    refinement_note: str

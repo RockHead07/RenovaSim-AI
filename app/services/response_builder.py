@@ -5,7 +5,11 @@
 
 import logging
 from app.services.assumption import AssumptionResult
-from app.data.pricing_data import PRE_FRAMING
+from app.data.pricing_data import (
+    PRE_FRAMING,
+    get_contextual_preframing,
+    get_human_explanation,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,9 +43,11 @@ def build_response(
     else:
         mode = "standard"
 
-    # Pre-framing — pick based on first job type
+    # Pre-framing — contextual based on confidence + job type
     first_job = assumptions.job_types[0] if assumptions.job_types else "default"
-    pre_framing = PRE_FRAMING.get(first_job, PRE_FRAMING["default"])
+    pre_framing = get_contextual_preframing(
+        assumptions.confidence_label, first_job
+    ) or PRE_FRAMING.get(first_job, PRE_FRAMING["default"])
 
     # Collect all assumptions as dicts
     assumption_list = []
@@ -53,10 +59,44 @@ def build_response(
                 **assumption.to_dict(),
             })
 
-    # Collect all explanation lines
+    # Human-readable explanation
     explanation = []
+    location = assumptions.location.value if assumptions.location else "default"
+    quality = assumptions.quality.value if assumptions.quality else "standar"
+    area = assumptions.area.value if assumptions.area else 0
+
+    regional_exp = get_human_explanation(f"regional_{location}") or get_human_explanation("regional_default")
+    if regional_exp:
+        explanation.append(regional_exp)
+
+    quality_exp = get_human_explanation(f"quality_{quality}")
+    if quality_exp:
+        explanation.append(quality_exp)
+
     for job in pricing.get("breakdown", []):
-        explanation.extend(job.get("explanation", []))
+        complexity_exp = get_human_explanation(f"complexity_{job['job_type']}")
+        if complexity_exp:
+            explanation.append(complexity_exp)
+
+    if area < 10:
+        size_exp = get_human_explanation("size_small")
+        if size_exp:
+            explanation.append(size_exp)
+    elif area > 50:
+        size_exp = get_human_explanation("size_large")
+        if size_exp:
+            explanation.append(size_exp)
+
+    waste_exp = get_human_explanation("waste_factor")
+    if waste_exp:
+        explanation.append(waste_exp)
+
+    if assumptions.scope and assumptions.scope.value != "medium":
+        scope_exp = get_human_explanation(f"scope_{assumptions.scope.value}")
+        if scope_exp:
+            explanation.append(scope_exp)
+
+    explanation = [e for e in explanation if e]
 
     # Clarification prompt if needed
     clarification_needed = None
@@ -98,7 +138,7 @@ def build_response(
         "warnings": warnings,
         "conflicts_resolved": conflicts,
         "clarification_needed": clarification_needed,
-    "disclaimer": BEST_EFFORT_DISCLAIMER if mode == "best_effort" else DISCLAIMER,
+        "disclaimer": BEST_EFFORT_DISCLAIMER if mode == "best_effort" else DISCLAIMER,
     }
 
     logger.debug(f"Response built — mode={mode}, confidence={assumptions.confidence_score}")

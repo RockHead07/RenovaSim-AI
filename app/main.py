@@ -12,6 +12,7 @@ from app.config import settings
 from app.api.estimate import router as estimate_router
 from app.api.job_types import router as job_types_router
 from app.api.estimate_v2 import router as estimate_v2_router
+from app.api.estimate_refine import router as estimate_refine_router
 from app.db.session import init_db, engine
 from app.db.seeder import seed_job_types
 from sqlmodel import Session
@@ -28,20 +29,16 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Lifespan — modern startup/shutdown handler (replaces @app.on_event)
+# Lifespan
 # ---------------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # --- Startup ---
     logger.info("Initialising database...")
     init_db()
     with Session(engine) as session:
         seed_job_types(session)
     logger.info("Database ready.")
-
-    yield  # app is running
-
-    # --- Shutdown ---
+    yield
     logger.info("Shutting down...")
 
 
@@ -61,7 +58,7 @@ app = FastAPI(
 )
 
 # ---------------------------------------------------------------------------
-# Custom 422 handler — clean, consistent validation error shape
+# Custom 422 handler
 # ---------------------------------------------------------------------------
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -102,5 +99,6 @@ async def global_exception_handler(request: Request, exc: Exception):
 app.include_router(estimate_router, prefix="/api")
 app.include_router(job_types_router, prefix="/api")
 app.include_router(estimate_v2_router, prefix="/api")
+app.include_router(estimate_refine_router, prefix="/api")
 
 logger.info(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} started [{settings.APP_ENV}]")
