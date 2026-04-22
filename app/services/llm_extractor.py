@@ -35,6 +35,10 @@ Rules:
 - Convert "sekitar 20", "kurang lebih 20" to 20
 - If unknown or unclear, return null for that field
 - Do NOT guess values — only extract what is explicitly stated
+- Only set scope if user EXPLICITLY mentions: 
+  "ringan/touch up/minor" → "light"
+  "total/bongkar/full" → "full"  
+  Otherwise ALWAYS return null for scope
 - Normalize Indonesian keywords:
   - "cat", "ngecat", "pengecatan" → "painting"
   - "keramik", "kramik", "granit", "lantai" → "ceramic"
