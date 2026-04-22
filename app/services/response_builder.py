@@ -110,6 +110,9 @@ def build_response(
         }
         clarification_needed = clarification_messages.get(field)
 
+    if not assumptions.job_types and clarification_needed is None:
+        clarification_needed = "Apa jenis pekerjaan yang ingin direnovasi? (cat, keramik, listrik, dll)"        
+
     response = {
         "project_name": project_name,
         "mode": mode,
@@ -143,3 +146,4 @@ def build_response(
 
     logger.debug(f"Response built — mode={mode}, confidence={assumptions.confidence_score}")
     return response
+

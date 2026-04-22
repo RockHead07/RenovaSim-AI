@@ -56,7 +56,7 @@ class TestEstimateAIFallback:
 
     def test_fallback_when_ollama_unreachable(self, client: TestClient):
         """When Ollama is down, system falls back to rule-based — no crash."""
-        with patch("app.services.llm_extractor.extract_from_text", return_value=None):
+        with patch("app.api.estimate_ai.extract_from_text", return_value=None):
             response = client.post("/api/v2/estimate/ai", json={
                 "text": "mau cat ruang tamu 20 meter di jakarta"
             })
@@ -68,7 +68,7 @@ class TestEstimateAIFallback:
 
     def test_fallback_still_uses_preparser(self, client: TestClient):
         """Even without LLM, pre-parser still extracts what it can."""
-        with patch("app.services.llm_extractor.extract_from_text", return_value=None):
+        with patch("app.api.estimate_ai.extract_from_text", return_value=None):
             response = client.post("/api/v2/estimate/ai", json={
                 "text": "ngecat 4x5 meter"
             })
