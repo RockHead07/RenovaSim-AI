@@ -1,27 +1,29 @@
 # ---------------------------------------------------------------------------
-# Dockerfile
-# Builds the RenovaSim AI API image.
+# Dockerfile — Production-ready RenovaSim AI image
 # ---------------------------------------------------------------------------
 
-# Use official slim Python 3.13 image as base
 FROM python:3.13-slim
 
-# Set working directory inside the container
 WORKDIR /app
 
-# Set environment variables
+# Security: run as non-root user
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# Install dependencies first (cached layer — only rebuilds if requirements change)
+# Install dependencies (cached layer)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the app
+# Copy app
 COPY . .
 
-# Expose the port uvicorn will run on
+# Own files as appuser
+RUN chown -R appuser:appgroup /app
+USER appuser
+
 EXPOSE 8000
 
-# Run the app
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Production: no --reload
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
