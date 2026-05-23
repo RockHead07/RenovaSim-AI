@@ -16,11 +16,11 @@ OLLAMA_MODEL = "llama3.2"
 MAX_RETRIES = 2
 TIMEOUT = 30.0
 
-EXTRACTION_PROMPT = """You are an information extraction system for Indonesian renovation projects.
-Extract structured data from the user's input.
-Return ONLY valid JSON. No explanation. No markdown. No code blocks.
+EXTRACTION_PROMPT = """Anda adalah sistem ekstraksi informasi untuk proyek renovasi di Indonesia.
+Ekstrak data terstruktur dari input pengguna.
+Kembalikan HANYA JSON yang valid. Tanpa penjelasan. Tanpa markdown. Tanpa blok kode.
 
-Schema:
+Skema:
 {{
   "job_type": "painting" | "ceramic" | "electrical" | "plumbing" | "roofing" | "waterproofing" | null,
   "area_m2": number | null,
@@ -30,16 +30,16 @@ Schema:
   "room": "bathroom" | "kitchen" | "bedroom" | "living_room" | "roof" | null
 }}
 
-Rules:
-- Convert dimensions like "3x4", "3x4m", "3 x 4" into area number (e.g. 12)
-- Convert "sekitar 20", "kurang lebih 20" to 20
-- If unknown or unclear, return null for that field
-- Do NOT guess values — only extract what is explicitly stated
-- Only set scope if user EXPLICITLY mentions: 
+Aturan:
+- Ubah dimensi seperti "3x4", "3x4m", "3 x 4" menjadi angka luas area (misalnya 12)
+- Ubah "sekitar 20", "kurang lebih 20" menjadi 20
+- Jika tidak diketahui atau tidak jelas, kembalikan null untuk field tersebut
+- JANGAN menebak nilai — hanya ekstrak apa yang disebutkan secara eksplisit
+- Hanya atur scope jika pengguna menyebutkan secara EKSPLISIT: 
   "ringan/touch up/minor" → "light"
   "total/bongkar/full" → "full"  
-  Otherwise ALWAYS return null for scope
-- Normalize Indonesian keywords:
+  Jika tidak, SELALU kembalikan null untuk scope
+- Normalisasi kata kunci bahasa Indonesia:
   - "cat", "ngecat", "pengecatan" → "painting"
   - "keramik", "kramik", "granit", "lantai" → "ceramic"
   - "listrik", "elektrikal" → "electrical"
@@ -56,9 +56,9 @@ Rules:
   - "ringan", "touch up", "minor" → scope: "light"
   - "total", "bongkar", "full" → scope: "full"
 
-User input: "{text}"
+Input pengguna: "{text}"
 
-Return only the JSON object:"""
+Kembalikan hanya objek JSON:"""
 
 
 def _parse_llm_response(raw: str) -> dict | None:
