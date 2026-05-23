@@ -1,7 +1,7 @@
 # RenovaSim AI — System Specification
 > Version: 0.1.0 (MVP)  
 > Status: Active Development  
-> Last Updated: 2026-04-18  
+> Last Updated: 2026-05-23  
 > This is the single source of truth for the RenovaSim AI system.  
 > README and AI_CONTEXT are derived from this document.
 
@@ -422,7 +422,8 @@ else:
 | Backend | Python 3.13 + FastAPI | Structured, modular |
 | Database | SQLite → PostgreSQL | MVP → Production |
 | ORM | SQLModel | SQLAlchemy + Pydantic combined |
-| AI Layer | Ollama + llama3.2 | Local, free, Phase 3 |
+| AI Layer | Ollama + llama3.2 | Active |
+| Auth/Security | middleware/auth + slowapi | Active |
 | Frontend | Laravel Blade + Tailwind CSS | Converted from Lovable prototype |
 | Config | pydantic-settings + .env | Per-environment |
 | Testing | pytest + httpx | In-memory SQLite for tests |
@@ -444,7 +445,7 @@ else:
 ### ✅ Phase 4 — Docker & Deployment
 - Dockerfile, docker-compose, lifespan pattern, .env.production
 
-### 🔲 Phase 5 — Estimation Engine (NO AI YET)
+### ✅ Phase 5 — Estimation Engine (NO AI YET)
 - Input normalization
 - Pre-parser (regex + keyword)
 - Job bundles + scope detection
@@ -453,20 +454,20 @@ else:
 - Sanity check layer
 - Response builder
 
-### 🔲 Phase 6 — Trust Layer
+### ✅ Phase 6 — Trust Layer
 - Confidence system
 - Range rounding by confidence
 - Pre-framing statements
 - Explanation trail
 - Editable assumptions (UI)
 
-### 🔲 Phase 7 — AI Layer (Ollama)
+### ✅ Phase 7 — AI Layer (Ollama)
 - LLM integration for messy input
 - Validation + retry logic
 - Clarification loop
 - Fallback to rule-based
 
-### 🔲 Phase 8 — Production Hardening
+### ✅ Phase 8 — Production Hardening
 - PostgreSQL migration
 - Authentication (JWT)
 - CORS configuration
@@ -496,8 +497,6 @@ else:
 - Base rates are market estimates, not field-validated
 - Regional multipliers are approximations
 - No real user data yet — synthetic logic only
-- LLM not yet integrated
-- No authentication yet
 - No feedback loop from contractors
 - Frontend not yet connected to this backend
 
@@ -514,3 +513,22 @@ Not:
 > *"Wah canggih banget AI-nya."*
 
 Trust > Intelligence. Always.
+
+---
+
+## 13. Available Endpoints
+
+### Estimation
+- `POST /api/estimate` (v1 basic)
+- `POST /api/estimate/v2` (v2 full RAB)
+- `POST /api/estimate/v2/refine` (Refine estimate)
+- `POST /api/estimate/v2/ai` (AI estimate)
+
+### System
+- `GET /api/health`
+
+### Job Types
+- `GET /api/job-types`
+- `POST /api/job-types`
+- `PUT /api/job-types/{name}`
+- `DELETE /api/job-types/{name}`

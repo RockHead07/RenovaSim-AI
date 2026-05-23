@@ -28,11 +28,26 @@ renovasim-ai/
 │   │
 │   ├── api/
 │   │   ├── estimate.py            ← POST /api/estimate
+│   │   ├── estimate_v2.py         ← POST /api/estimate/v2
+│   │   ├── estimate_refine.py     ← POST /api/estimate/v2/refine
+│   │   ├── estimate_ai.py         ← POST /api/estimate/v2/ai
+│   │   ├── health.py              ← GET /api/health
 │   │   └── job_types.py           ← CRUD /api/job-types
 │   │
+│   ├── middleware/
+│   │   └── auth.py                ← Auth & Rate Limiting
+│   │
 │   ├── services/
-│   │   ├── estimator.py           ← Estimation logic (reads from DB)
-│   │   └── job_type_service.py    ← Job type CRUD logic
+│   │   ├── estimator.py           ← V1 Estimation logic
+│   │   ├── job_type_service.py    ← Job type CRUD logic
+│   │   ├── normalizer.py          ← Input normalization
+│   │   ├── parser.py              ← Pre-parser
+│   │   ├── pricing.py             ← Pricing engine
+│   │   ├── assumption.py          ← Assumption engine
+│   │   ├── sanity.py              ← Sanity checks
+│   │   ├── response_builder.py    ← Response formatter
+│   │   ├── refiner.py             ← Refinement logic
+│   │   └── llm_extractor.py       ← LLM integration
 │   │
 │   ├── schemas/
 │   │   ├── estimate_schema.py     ← Request/response models for estimation
@@ -46,7 +61,9 @@ renovasim-ai/
 │   │   └── seeder.py              ← Seeds default job types on startup
 │   │
 │   └── data/
-│       └── cost_data.py           ← Default cost table (used by seeder)
+│       ├── cost_data.py           ← Default cost table (used by seeder)
+│       ├── pricing_data.py
+│       └── job_bundles.py
 │
 ├── tests/
 │   ├── conftest.py                ← Shared test client + in-memory DB
@@ -119,62 +136,24 @@ DATABASE_URL="sqlite:///./renovasim.db"
 
 ---
 
-## API Reference
+## Available Endpoints (API Reference)
 
-### Estimation
+### 1. V2 Estimation (Main)
+- **`POST /api/estimate/v2`** — Generate full RAB with range, assumptions, and confidence.
+- **`POST /api/estimate/v2/refine`** — Update an existing estimate by resolving assumptions.
+- **`POST /api/estimate/v2/ai`** — Parse natural language input into a structured estimate.
 
-#### `POST /api/estimate`
-Calculate renovation cost for a given job type and area.
+### 2. V1 Estimation (Legacy)
+- **`POST /api/estimate`** — Basic rule-based estimation.
 
-**Request**
-```json
-{
-  "job_type": "painting",
-  "area": 50
-}
-```
+### 3. System
+- **`GET /api/health`** — Health check.
 
-**Response**
-```json
-{
-  "job_type": "painting",
-  "area": 50,
-  "material_cost": 1250000,
-  "labor_cost": 750000,
-  "total_cost": 2000000
-}
-```
-
-> ⚠️ This endpoint is Phase 3 (basic). Phase 5 will replace it with full RAB output including range, assumptions, confidence, and breakdown.
-
----
-
-### Job Types (CRUD)
-
-#### `GET /api/job-types`
-List all supported job types and their unit prices.
-
-#### `POST /api/job-types`
-Add a new job type.
-```json
-{
-  "name": "plumbing",
-  "material_price": 90000,
-  "labor_price": 60000
-}
-```
-
-#### `PUT /api/job-types/{name}`
-Update prices for an existing job type.
-```json
-{
-  "material_price": 100000,
-  "labor_price": 70000
-}
-```
-
-#### `DELETE /api/job-types/{name}`
-Remove a job type. Returns `204 No Content`.
+### 4. Job Types (CRUD)
+- **`GET /api/job-types`** — List all supported job types and their unit prices.
+- **`POST /api/job-types`** — Add a new job type.
+- **`PUT /api/job-types/{name}`** — Update prices for an existing job type.
+- **`DELETE /api/job-types/{name}`** — Remove a job type.
 
 ---
 
@@ -198,10 +177,10 @@ Remove a job type. Returns `204 No Content`.
 | 2 | Tests & error handling | ✅ Done |
 | 3 | SQLite database + CRUD endpoints | ✅ Done |
 | 4 | Docker & deployment | ✅ Done |
-| 5 | Full estimation engine (no AI) | 🔲 Next |
-| 6 | Trust layer — confidence, framing, assumptions | 🔲 Upcoming |
-| 7 | AI layer — Ollama + llama3.2 | 🔲 Upcoming |
-| 8 | Production hardening — PostgreSQL, auth | 🔲 Upcoming |
+| 5 | Full estimation engine (no AI) | ✅ Done |
+| 6 | Trust layer — confidence, framing, assumptions | ✅ Done |
+| 7 | AI layer — Ollama + llama3.2 | ✅ Done |
+| 8 | Production hardening — PostgreSQL, auth | ✅ Done |
 
 ---
 
@@ -223,7 +202,7 @@ Remove a job type. Returns `204 No Content`.
 3. Run the project locally (Option A above)
 4. Run tests — all 13 should pass
 5. Check `/docs` — understand existing endpoints
-6. Start on Phase 5 — see `SYSTEM_SPEC.md` section 9
+6. Start connecting the Laravel frontend to this API
 
 ---
 

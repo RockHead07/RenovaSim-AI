@@ -50,20 +50,14 @@ Core promise to user:
 - Docker + docker-compose deployment
 - Lifespan pattern (not deprecated on_event)
 - DB seeder for default job types
+- Normalizer, parser, assumption engine, pricing engine, sanity check, response builder
+- Refiner and LLM extractor (Ollama + llama3.2)
+- Security: CORS, auth, rate limiting
+- Health check endpoint
+- All v2 endpoints (v2/estimate, v2/estimate/refine, v2/estimate/ai)
 
 ### 🔲 Not yet built (active development area)
-- Input normalization layer
-- Pre-parser (regex + keyword extraction)
-- Job bundle system (room = multiple jobs)
-- Scope clarifier (mandatory: ringan/sedang/total)
-- Full pricing engine (range, multipliers, size factor, waste, minimum cost)
-- Assumption engine (active, not passive)
-- Confidence system (weighted, hard cap on critical fields)
-- Sanity check layer (budget mismatch, overkill, unusual values)
-- Response builder (pre-framing, range, breakdown, assumptions, explanation trail)
-- LLM integration (Ollama + llama3.2) — Phase 7, not yet
 - Frontend connection to this backend
-- Authentication
 
 ---
 
@@ -192,10 +186,24 @@ renovasim-ai/
 │   ├── config.py
 │   ├── api/
 │   │   ├── estimate.py
+│   │   ├── estimate_v2.py
+│   │   ├── estimate_refine.py
+│   │   ├── estimate_ai.py
+│   │   ├── health.py
 │   │   └── job_types.py
+│   ├── middleware/
+│   │   └── auth.py
 │   ├── services/
 │   │   ├── estimator.py
-│   │   └── job_type_service.py
+│   │   ├── job_type_service.py
+│   │   ├── normalizer.py
+│   │   ├── parser.py
+│   │   ├── pricing.py
+│   │   ├── assumption.py
+│   │   ├── sanity.py
+│   │   ├── response_builder.py
+│   │   ├── refiner.py
+│   │   └── llm_extractor.py
 │   ├── schemas/
 │   │   ├── estimate_schema.py
 │   │   └── job_type_schema.py
@@ -205,7 +213,9 @@ renovasim-ai/
 │   │   ├── session.py
 │   │   └── seeder.py
 │   └── data/
-│       └── cost_data.py
+│       ├── cost_data.py
+│       ├── pricing_data.py
+│       └── job_bundles.py
 ├── tests/
 │   ├── conftest.py
 │   └── test_estimate.py
@@ -223,17 +233,7 @@ renovasim-ai/
 
 ## What to help with next (current priority)
 
-**Phase 5 — Estimation Engine (no AI yet)**
-
-Build in this order:
-1. Input normalization (`app/services/normalizer.py`)
-2. Pre-parser (`app/services/parser.py`)
-3. Job bundle + scope detection (`app/data/job_bundles.py`)
-4. Pricing engine (`app/services/pricing.py`)
-5. Assumption engine (`app/services/assumption.py`)
-6. Sanity check (`app/services/sanity.py`)
-7. Response builder (`app/services/response_builder.py`)
-8. New endpoint: `POST /api/estimate/v2` (replaces current naive endpoint)
+The backend is complete — next priority is connecting the Laravel frontend to this API.
 
 ---
 
