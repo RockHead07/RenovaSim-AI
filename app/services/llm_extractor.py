@@ -12,9 +12,9 @@ import httpx
 logger = logging.getLogger(__name__)
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "llama3.2"
+OLLAMA_MODEL = "qwen2.5:7b"
 MAX_RETRIES = 2
-TIMEOUT = 30.0
+TIMEOUT = 120.0
 
 EXTRACTION_PROMPT = """Anda adalah sistem ekstraksi informasi untuk proyek renovasi di Indonesia.
 Ekstrak data terstruktur dari input pengguna.
@@ -22,7 +22,7 @@ Kembalikan HANYA JSON yang valid. Tanpa penjelasan. Tanpa markdown. Tanpa blok k
 
 Skema:
 {{
-  "job_type": "painting" | "ceramic" | "electrical" | "plumbing" | "roofing" | "waterproofing" | null,
+  "job_types": ["painting", "ceramic"],
   "area_m2": number | null,
   "quality": "ekonomi" | "standar" | "premium" | null,
   "location": string | null,
@@ -30,31 +30,27 @@ Skema:
   "room": "bathroom" | "kitchen" | "bedroom" | "living_room" | "roof" | null
 }}
 
-Aturan:
-- Ubah dimensi seperti "3x4", "3x4m", "3 x 4" menjadi angka luas area (misalnya 12)
-- Ubah "sekitar 20", "kurang lebih 20" menjadi 20
-- Jika tidak diketahui atau tidak jelas, kembalikan null untuk field tersebut
-- JANGAN menebak nilai — hanya ekstrak apa yang disebutkan secara eksplisit
-- Hanya atur scope jika pengguna menyebutkan secara EKSPLISIT: 
-  "ringan/touch up/minor" → "light"
-  "total/bongkar/full" → "full"  
-  Jika tidak, SELALU kembalikan null untuk scope
-- Normalisasi kata kunci bahasa Indonesia:
-  - "cat", "ngecat", "pengecatan" → "painting"
-  - "keramik", "kramik", "granit", "lantai" → "ceramic"
-  - "listrik", "elektrikal" → "electrical"
-  - "pipa", "plumbing", "sanitasi" → "plumbing"
-  - "atap", "genteng" → "roofing"
-  - "waterproof", "anti bocor" → "waterproofing"
-  - "kamar mandi", "toilet", "wc" → room: "bathroom"
-  - "dapur" → room: "kitchen"
-  - "kamar tidur", "kamar" → room: "bedroom"
-  - "ruang tamu", "ruang keluarga" → room: "living_room"
-  - "ekonomi", "murah", "biasa" → "ekonomi"
-  - "standar", "normal" → "standar"
-  - "premium", "bagus", "mewah", "mahal", "impor" → "premium"
-  - "ringan", "touch up", "minor" → scope: "light"
-  - "total", "bongkar", "full" → scope: "full"
+Nilai valid untuk job_types (ARRAY — ekstrak SEMUA pekerjaan yang disebutkan):
+- "painting"       → cat dinding, cat plafon, cat ulang, poles, repaint, ngecat, pengecatan, warna
+- "ceramic"        → keramik, lantai, ubin, tiles, granit, ganti lantai, pasang lantai
+- "plumbing"       → pipa, kran, wastafel, toilet, saluran air, bak mandi, shower
+- "electrical"     → listrik, kabel, stopkontak, lampu pasang, instalasi listrik, pasang AC, AC, air conditioner, kipas angin
+- "roofing"        → atap, genteng, bocor atap, talang
+- "waterproofing"  → waterproof, anti bocor, coating anti air, pelapis
+- "carpentry"      → pintu, jendela, kusen, lemari, partisi kayu, ganti pintu, plafon kayu
+
+Aturan PENTING:
+- job_types adalah ARRAY. Ekstrak SEMUA pekerjaan yang disebutkan, jangan hanya satu.
+- Contoh input: "cat dinding, ganti lantai keramik, pasang AC" → job_types: ["painting", "ceramic", "electrical"]
+- Contoh input: "renovasi kamar, cat premium, ganti pintu, lantai keramik, plafon, pasang AC" → job_types: ["painting", "carpentry", "ceramic", "electrical"]
+- Cat dinding dan cat plafon keduanya → "painting" (tidak duplikasi dalam array)
+- Jika hanya satu pekerjaan → tetap array: ["painting"]
+- Jika tidak ada pekerjaan disebutkan → job_types: []
+- Jika dimensi seperti '4x5', '4 x 5', '4mx5m' → hitung: area_m2 = 20
+- "sekitar 20", "kurang lebih 20" → area_m2 = 20
+- Scope: "renovasi total/full/bongkar/semua" → "full", "ringan/touch up/sedikit" → "light", selain itu null
+- Quality: "premium/bagus/mewah/mahal/impor" → "premium", "ekonomi/murah/biasa" → "ekonomi", "standar/normal" → "standar"
+- Location: kota atau daerah yang disebutkan (jakarta, surabaya, dll), selain itu null
 
 Input pengguna: "{text}"
 
@@ -123,6 +119,16 @@ def extract_from_text(text: str) -> dict | None:
 
             parsed = _parse_llm_response(raw_text)
             if parsed:
+                # Post-process: calculate area from dimensions if area is null
+                import re
+                if not parsed.get('area_m2'):
+                    dim_pattern = r'(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)\s*m?'
+                    match = re.search(dim_pattern, text)
+                    if match:
+                        w = float(match.group(1))
+                        h = float(match.group(2))
+                        parsed['area_m2'] = w * h
+
                 logger.info(f"LLM extraction success on attempt {attempt}: {parsed}")
                 return parsed
             else:
@@ -155,6 +161,18 @@ def merge_llm_with_parsed(llm_result: dict | None, parsed_fields: dict) -> dict:
     for key, value in parsed_fields.items():
         if value is not None:
             merged[key] = value
+
+    # Backward compatibility: normalize job_type → job_types
+    if "job_types" not in merged or not merged["job_types"]:
+        single = merged.get("job_type")
+        merged["job_types"] = [single] if single else []
+
+    # Deduplicate job_types
+    seen = []
+    for jt in merged.get("job_types", []):
+        if jt and jt not in seen:
+            seen.append(jt)
+    merged["job_types"] = seen
 
     logger.debug(f"Merged result: {merged}")
     return merged

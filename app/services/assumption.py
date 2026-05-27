@@ -63,6 +63,7 @@ class AssumptionResult:
 def build_assumptions(
     parsed: ParsedInput,
     location: str | None = None,
+    explicit_job_types: list[str] | None = None,
 ) -> AssumptionResult:
     result = AssumptionResult()
 
@@ -105,7 +106,13 @@ def build_assumptions(
         )
 
     # --- Job types (from bundle or direct) ---
-    if parsed.room:
+    if explicit_job_types:
+        # LLM extracted multiple job types explicitly — use them directly
+        result.job_types = explicit_job_types
+        logger.debug(f"Using explicit job_types from LLM: {explicit_job_types}")
+    elif parsed.job_type:
+        result.job_types = [parsed.job_type]
+    elif parsed.room:
         scope = parsed.scope or "medium"
         jobs = get_jobs_for_bundle(parsed.room, scope)
         result.job_types = jobs
@@ -116,8 +123,6 @@ def build_assumptions(
             impact="medium",
             reason=f"Ruangan '{parsed.room}' dengan scope '{scope}'",
         )
-    elif parsed.job_type:
-        result.job_types = [parsed.job_type]
     else:
         # No job type detected — cannot proceed without clarification
         result.job_types = []

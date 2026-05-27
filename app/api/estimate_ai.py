@@ -64,16 +64,25 @@ def estimate_ai(request: EstimateAIRequest) -> EstimateAIResponse:
         if not final_parsed.room and merged.get("room"):
             final_parsed.room = merged.get("room")
 
-        # Step 5: Build assumptions
+        # Step 5: Extract multi-job types from LLM result
+        explicit_job_types = merged.get("job_types", [])
+        if not explicit_job_types:
+            single = merged.get("job_type")
+            explicit_job_types = [single] if single else []
+        # Deduplicate
+        explicit_job_types = list(dict.fromkeys(jt for jt in explicit_job_types if jt))
+
+        # Step 6: Build assumptions
         assumptions = build_assumptions(
             final_parsed,
             location=merged.get("location"),
+            explicit_job_types=explicit_job_types if explicit_job_types else None,
         )
 
-        # Step 6: Calculate pricing
+        # Step 7: Calculate pricing
         pricing = calculate_total(assumptions)
 
-        # Step 7: Sanity checks
+        # Step 8: Sanity checks
         warnings = run_sanity_checks(
             total_min=pricing["total_min"],
             total_max=pricing["total_max"],
@@ -81,7 +90,7 @@ def estimate_ai(request: EstimateAIRequest) -> EstimateAIResponse:
             user_budget=request.budget,
         )
 
-        # Step 8: Build response
+        # Step 9: Build response
         response = build_response(
             project_name=request.project_name,
             assumptions=assumptions,
