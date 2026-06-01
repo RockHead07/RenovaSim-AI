@@ -36,3 +36,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+TIMEOUT = 240.0

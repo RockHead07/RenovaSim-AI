@@ -14,15 +14,15 @@ logger = logging.getLogger(__name__)
 OLLAMA_URL = "http://localhost:11434/api/generate"
 OLLAMA_MODEL = "qwen2.5:7b"
 MAX_RETRIES = 2
-TIMEOUT = 120.0
+TIMEOUT = 240.0
 
-EXTRACTION_PROMPT = """Anda adalah sistem ekstraksi informasi untuk proyek renovasi di Indonesia.
-Ekstrak data terstruktur dari input pengguna.
-Kembalikan HANYA JSON yang valid. Tanpa penjelasan. Tanpa markdown. Tanpa blok kode.
+EXTRACTION_PROMPT = """Anda adalah sistem ekstraksi informasi renovasi rumah Indonesia yang sangat akurat.
+Tugas: Ekstrak informasi terstruktur dari deskripsi renovasi pengguna.
+Kembalikan HANYA JSON valid. Tanpa penjelasan, tanpa markdown, tanpa blok kode.
 
-Skema:
+Skema output:
 {{
-  "job_types": ["painting", "ceramic"],
+  "job_types": [...],
   "area_m2": number | null,
   "quality": "ekonomi" | "standar" | "premium" | null,
   "location": string | null,
@@ -30,31 +30,63 @@ Skema:
   "room": "bathroom" | "kitchen" | "bedroom" | "living_room" | "roof" | null
 }}
 
-Nilai valid untuk job_types (ARRAY — ekstrak SEMUA pekerjaan yang disebutkan):
-- "painting"       → cat dinding, cat plafon, cat ulang, poles, repaint, ngecat, pengecatan, warna
-- "ceramic"        → keramik, lantai, ubin, tiles, granit, ganti lantai, pasang lantai
-- "plumbing"       → pipa, kran, wastafel, toilet, saluran air, bak mandi, shower
-- "electrical"     → listrik, kabel, stopkontak, lampu pasang, instalasi listrik, pasang AC, AC, air conditioner, kipas angin
-- "roofing"        → atap, genteng, bocor atap, talang
-- "waterproofing"  → waterproof, anti bocor, coating anti air, pelapis
-- "carpentry"      → pintu, jendela, kusen, lemari, partisi kayu, ganti pintu, plafon kayu
+JOB TYPES valid (pilih SEMUA yang relevan dari deskripsi):
+- "painting"       → cat dinding, cat plafon, ngecat, repaint, cat ulang, poles, warna tembok, cat eksterior, cat interior, pengecatan
+- "ceramic"        → keramik lantai, ubin lantai, granit lantai, ganti lantai keramik, pasang lantai keramik, homogeneous tile lantai
+- "wall_tile"      → keramik dinding, ubin dinding, tile dinding, pasang keramik dinding, keramik kamar mandi (dinding), mozaik dinding
+- "ceiling"        → plafon, plafond, eternit, gypsum board, GRC board, drop ceiling, plafon jebol, plafon bocor, ganti plafon, pasang plafon, langit-langit
+- "wall"           → plester, aci, acian, plesteran dinding, dinding retak, tambal dinding, perbaiki dinding, screeding, nat plester
+- "electrical"     → listrik, kabel listrik, stopkontak, saklar, MCB, panel listrik, instalasi listrik, titik lampu, grounding, daya listrik
+- "plumbing"       → pipa air, kran, wastafel, toilet, closet, saluran air, bak mandi, shower, water heater, pompa air, septik tank
+- "roofing"        → atap bocor, genteng, talang air, rangka atap, baja ringan, asbes atap, renovasi atap, ganti genteng
+- "waterproofing"  → waterproof, anti bocor, coating anti air, pelapis dak, bocor dak beton, sealant, injeksi beton
+- "carpentry"      → pintu kayu, kusen pintu kayu, daun pintu, ganti pintu (kayu/PVC), partisi kayu, panel kayu
+- "window"         → jendela, kusen jendela, ganti jendela, teralis, jalusi, jendela aluminium, jendela UPVC, kaca jendela, bouvenlight
+- "flooring_wood"  → lantai kayu, parket, vinyl lantai, SPC floor, laminate floor, floor ing kayu, wood floor, lantai vinyl
+- "cabinet"        → lemari, wardrobe, lemari tanam, lemari pakaian, lemari built-in, rak dinding, kabinet dinding, lemari custom
+- "carport"        → kanopi, carport, garasi atap, kanopi baja ringan, atap polycarbonate, atap garasi, pergola
+- "fence"          → pagar, pagar bata, pagar besi, pagar tembok, pagar hollow, bikin pagar, tembok pagar, pagar depan rumah
+- "demolition"     → bongkar, bongkaran, robohkan, hancurkan, demolisi, buka dinding, buang dinding lama, rombak, kupas
+- "insulation"     → insulasi, peredam panas, peredam suara, glasswool, rockwool, foam insulasi, atap panas, aluminium foil atap
+- "wallpaper"      → wallpaper, wall panel, wainscoting, panel dinding, wallcovering, stiker dinding dekoratif, vinyl wall
 
-Aturan PENTING:
-- job_types adalah ARRAY. Ekstrak SEMUA pekerjaan yang disebutkan, jangan hanya satu.
-- Contoh input: "cat dinding, ganti lantai keramik, pasang AC" → job_types: ["painting", "ceramic", "electrical"]
-- Contoh input: "renovasi kamar, cat premium, ganti pintu, lantai keramik, plafon, pasang AC" → job_types: ["painting", "carpentry", "ceramic", "electrical"]
-- Cat dinding dan cat plafon keduanya → "painting" (tidak duplikasi dalam array)
-- Jika hanya satu pekerjaan → tetap array: ["painting"]
-- Jika tidak ada pekerjaan disebutkan → job_types: []
-- Jika dimensi seperti '4x5', '4 x 5', '4mx5m' → hitung: area_m2 = 20
-- "sekitar 20", "kurang lebih 20" → area_m2 = 20
-- Scope: "renovasi total/full/bongkar/semua" → "full", "ringan/touch up/sedikit" → "light", selain itu null
-- Quality: "premium/bagus/mewah/mahal/impor" → "premium", "ekonomi/murah/biasa" → "ekonomi", "standar/normal" → "standar"
-- Location: kota atau daerah yang disebutkan (jakarta, surabaya, dll), selain itu null
+ATURAN KRITIS (jangan sampai salah):
+- "plafon/plafond/eternit/gypsum langit-langit" → "ceiling" (BUKAN "carpentry")
+- "jendela/kusen jendela/teralis" → "window" (BUKAN "carpentry")
+- "keramik dinding/mozaik dinding" → "wall_tile" (BUKAN "ceramic")
+- "keramik lantai/granit lantai" → "ceramic" (BUKAN "wall_tile")
+- "lantai vinyl/parket/kayu" → "flooring_wood" (BUKAN "ceramic")
+- "lemari/wardrobe/rak built-in" → "cabinet" (BUKAN "carpentry")
+- "kanopi/carport/garasi atap" → "carport" (BUKAN "roofing")
+- "bongkar/demolisi" → "demolition" (tambahkan selain job type utama)
+- "pagar" → "fence" (BUKAN "carpentry")
+- Quality: "premium/mewah/bagus/berkualitas/impor/branded/kelas atas" → "premium"
+- Quality: "ekonomi/murah/biasa/seadanya/budget" → "ekonomi"
+- Quality: "standar/normal/sedang/menengah" → "standar"
+- Scope: "total/full/semua/bongkar semua/rombak total/dari nol" → "full"
+- Scope: "touch up/sedikit/ringan/minor/sebagian kecil" → "light"
+- Dimensi "4x5", "4mx5m", "4 x 5 meter", "4 kali 5" → area_m2 = 20
+- Budget/harga yang disebutkan → ABAIKAN, jangan jadikan job type
 
-Input pengguna: "{text}"
+CONTOH (few-shot):
+Input: "cat ulang kamar tidur 12m2, ganti plafon gypsum, pasang vinyl lantai"
+Output: {{"job_types": ["painting", "ceiling", "flooring_wood"], "area_m2": 12, "quality": null, "location": null, "scope": null, "room": "bedroom"}}
 
-Kembalikan hanya objek JSON:"""
+Input: "renovasi total kamar mandi 3x2m premium di Surabaya"
+Output: {{"job_types": ["plumbing", "ceramic", "wall_tile", "electrical", "waterproofing", "ceiling"], "area_m2": 6, "quality": "premium", "location": "surabaya", "scope": "full", "room": "bathroom"}}
+
+Input: "bikin pagar tembok depan rumah 10m, bongkar pagar lama dulu"
+Output: {{"job_types": ["fence", "demolition"], "area_m2": null, "quality": null, "location": null, "scope": null, "room": null}}
+
+Input: "pasang wallpaper kamar anak, lemari built-in, cat dinding warna pastel, 4x4 meter"
+Output: {{"job_types": ["wallpaper", "cabinet", "painting"], "area_m2": 16, "quality": null, "location": null, "scope": null, "room": "bedroom"}}
+
+Input: "plafon kamar bocor jebol, dinding retak-retak, mau sekalian pasang insulasi biar ga panas, 20m2"
+Output: {{"job_types": ["ceiling", "wall", "insulation"], "area_m2": 20, "quality": null, "location": null, "scope": null, "room": null}}
+
+Input teks renovasi: "{text}"
+
+JSON output:"""
 
 
 def _parse_llm_response(raw: str) -> dict | None:
