@@ -63,6 +63,9 @@ def build_response(
     explanation = []
     location = assumptions.location.value if assumptions.location else "default"
     quality = assumptions.quality.value if assumptions.quality else "standar"
+    location_display = assumptions.location.value if assumptions.location else None
+    if location_display == "default":
+        location_display = None
     area = assumptions.area.value if assumptions.area else 0
 
     regional_exp = get_human_explanation(f"regional_{location}") or get_human_explanation("regional_default")
@@ -122,6 +125,8 @@ def build_response(
             "message": assumptions.confidence_message,
         },
         "pre_framing": pre_framing,
+        "quality":  quality if assumptions.quality and assumptions.quality.source == "confirmed" else None,
+        "location": location_display,
         "total_range": {
             "min": pricing.get("total_min", 0),
             "max": pricing.get("total_max", 0),

@@ -55,19 +55,20 @@ def refine_estimate(
         scope=corrections.get("scope") or merged.get("scope"),
     )
 
-    # Preserve previous job types if none detected from corrections
-    if not parsed.job_type and not parsed.room and prev_job_types:
-        parsed.job_type = prev_job_types[0]
+    # Preserve ALL previous job types unless user explicitly corrects job_type.
+    # This fixes multi-job context being lost after refinement.
+    explicit_job_types = (
+        prev_job_types
+        if prev_job_types and not corrections.get("job_type")
+        else None
+    )
 
-    # Build new assumptions
+    # Build new assumptions, passing previous job types to preserve multi-job context
     assumptions = build_assumptions(
         parsed,
         location=corrections.get("location") or merged.get("location"),
+        explicit_job_types=explicit_job_types,
     )
-
-    # Preserve previous job types if still empty
-    if not assumptions.job_types and prev_job_types:
-        assumptions.job_types = prev_job_types
 
     # Recalculate
     pricing = calculate_total(assumptions)

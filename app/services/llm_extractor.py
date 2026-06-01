@@ -69,7 +69,7 @@ def _parse_llm_response(raw: str) -> dict | None:
     try:
         data = json.loads(raw)
         # Validate it's a dict with expected keys
-        expected_keys = {"job_type", "area_m2", "quality", "location", "scope", "room"}
+        expected_keys = {"job_types", "job_type", "area_m2", "quality", "location", "scope", "room"}
         if isinstance(data, dict) and any(k in data for k in expected_keys):
             return data
     except (json.JSONDecodeError, ValueError):

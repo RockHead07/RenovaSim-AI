@@ -22,12 +22,12 @@ JOB_BUNDLE: dict[str, dict[ScopeLevel, list[str]]] = {
     "bedroom": {
         "light":  ["painting"],
         "medium": ["painting", "electrical"],
-        "full":   ["painting", "electrical", "ceramic"],
+        "full":   ["painting", "electrical", "ceramic", "carpentry"],
     },
     "living_room": {
         "light":  ["painting"],
         "medium": ["painting", "ceramic"],
-        "full":   ["painting", "ceramic", "electrical"],
+        "full":   ["painting", "ceramic", "electrical", "carpentry"],
     },
     "roof": {
         "light":  ["roofing"],

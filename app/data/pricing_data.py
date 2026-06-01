@@ -36,6 +36,11 @@ BASE_RATE_RANGE: dict[str, dict[str, tuple[float, float]]] = {
         "standar":  (90_000,  140_000),
         "premium":  (140_000, 220_000),
     },
+    "carpentry": {
+        "ekonomi":  (50_000,   80_000),
+        "standar":  (80_000,  150_000),
+        "premium":  (150_000, 300_000),
+    },
 }
 
 # Regional multipliers — baseline nasional + adjustment
@@ -64,6 +69,7 @@ JOB_COMPLEXITY: dict[str, float] = {
     "electrical":     1.4,
     "roofing":        1.5,
     "waterproofing":  1.2,
+    "carpentry":      1.3,
 }
 
 # Pre-framing messages per job type
@@ -74,6 +80,7 @@ PRE_FRAMING: dict[str, str] = {
     "plumbing":      "Pekerjaan plumbing mencakup pipa, fitting, dan upah tukang. Kondisi instalasi lama bisa mempengaruhi biaya aktual.",
     "roofing":       "Pekerjaan atap sangat dipengaruhi kondisi lapangan. Estimasi ini sebagai gambaran awal sebelum survei langsung.",
     "waterproofing": "Waterproofing yang baik mencegah kebocoran jangka panjang. Biaya tergantung kondisi permukaan dan produk yang digunakan.",
+    "carpentry":     "Pekerjaan pertukangan mencakup material kayu/UPVC, aksesoris, dan upah tukang. Harga bervariasi tergantung jenis dan kualitas material pintu/jendela.",
     "default":       "Estimasi ini berdasarkan harga pasar rata-rata. Harga aktual dapat berbeda tergantung kondisi lapangan.",
 }
 
@@ -98,6 +105,7 @@ HUMAN_EXPLANATIONS: dict[str, str] = {
     "complexity_electrical":     "Instalasi listrik butuh teknisi bersertifikat — biaya tertinggi di antara pekerjaan umum",
     "complexity_roofing":        "Pekerjaan atap berisiko tinggi dan butuh alat khusus — biaya paling tinggi",
     "complexity_waterproofing":  "Waterproofing butuh material dan teknik khusus — biaya di atas standar",
+    "complexity_carpentry":  "Pekerjaan pertukangan (pintu/jendela) butuh keahlian khusus dan material berkualitas",
 
     "size_small":    "Proyek kecil (<10m²) memiliki biaya per m² lebih tinggi karena overhead tetap tukang",
     "size_medium":   "Ukuran standar — tidak ada penyesuaian biaya per m²",
@@ -129,6 +137,7 @@ CONTEXTUAL_PREFRAMING: dict[str, dict[str, str]] = {
         "plumbing":      "Berdasarkan detail yang Anda berikan, berikut estimasi biaya pekerjaan plumbing:",
         "roofing":       "Berdasarkan detail yang Anda berikan, berikut estimasi biaya pekerjaan atap:",
         "waterproofing": "Berdasarkan detail yang Anda berikan, berikut estimasi biaya waterproofing:",
+        "carpentry":     "Berdasarkan detail yang Anda berikan, berikut estimasi biaya pekerjaan pertukangan:",
         "default":       "Berdasarkan detail yang Anda berikan, berikut estimasi biaya renovasi:",
     },
     "medium": {
@@ -138,6 +147,7 @@ CONTEXTUAL_PREFRAMING: dict[str, dict[str, str]] = {
         "plumbing":      "Pekerjaan plumbing mencakup pipa, fitting, dan upah tukang. Kondisi instalasi lama bisa mempengaruhi biaya.",
         "roofing":       "Pekerjaan atap sangat dipengaruhi kondisi lapangan. Estimasi ini sebagai gambaran awal sebelum survei.",
         "waterproofing": "Waterproofing yang baik mencegah kebocoran jangka panjang. Biaya tergantung kondisi permukaan.",
+        "carpentry":     "Pekerjaan pertukangan mencakup material pintu/jendela, aksesoris, dan upah tukang. Harga sangat bergantung pada jenis material yang dipilih.",
         "default":       "Estimasi ini berdasarkan harga pasar rata-rata dengan beberapa asumsi yang bisa Anda koreksi.",
     },
     "low": {

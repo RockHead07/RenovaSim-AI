@@ -67,6 +67,8 @@ class EstimateV2Response(BaseModel):
     mode: str
     confidence: ConfidenceSchema
     pre_framing: str
+    quality: str | None = None
+    location: str | None = None
     total_range: TotalRangeSchema
     breakdown: list[BreakdownItemSchema]
     assumptions: list[AssumptionItemSchema]
