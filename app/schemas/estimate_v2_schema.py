@@ -104,6 +104,7 @@ class EstimateAIRequest(BaseModel):
         examples=["mau cat ruang tamu 4x5 pakai cat bagus di jakarta"],
     )
     budget: float | None = Field(default=None, gt=0, description="Budget opsional untuk sanity check")
+    area_hint: float | None = Field(default=None, gt=0, description="Optional area hint from session / previous estimation")
 
 
 class EstimateAIResponse(EstimateV2Response):

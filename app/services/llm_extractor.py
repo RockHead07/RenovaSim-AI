@@ -16,77 +16,124 @@ OLLAMA_MODEL = "qwen2.5:7b"
 MAX_RETRIES = 2
 TIMEOUT = 240.0
 
-EXTRACTION_PROMPT = """Anda adalah sistem ekstraksi informasi renovasi rumah Indonesia yang sangat akurat.
-Tugas: Ekstrak informasi terstruktur dari deskripsi renovasi pengguna.
-Kembalikan HANYA JSON valid. Tanpa penjelasan, tanpa markdown, tanpa blok kode.
+EXTRACTION_PROMPT = """Ekstrak info renovasi dari teks Indonesia. Kembalikan HANYA JSON valid.
 
-Skema output:
-{{
-  "job_types": [...],
-  "area_m2": number | null,
-  "quality": "ekonomi" | "standar" | "premium" | null,
-  "location": string | null,
-  "scope": "light" | "medium" | "full" | null,
-  "room": "bathroom" | "kitchen" | "bedroom" | "living_room" | "roof" | null
-}}
+Skema:
+{{"job_types":[],"area_m2":null,"quality":null,"location":null,"scope":null,"room":null}}
 
-JOB TYPES valid (pilih SEMUA yang relevan dari deskripsi):
-- "painting"       → cat dinding, cat plafon, ngecat, repaint, cat ulang, poles, warna tembok, cat eksterior, cat interior, pengecatan
-- "ceramic"        → keramik lantai, ubin lantai, granit lantai, ganti lantai keramik, pasang lantai keramik, homogeneous tile lantai
-- "wall_tile"      → keramik dinding, ubin dinding, tile dinding, pasang keramik dinding, keramik kamar mandi (dinding), mozaik dinding
-- "ceiling"        → plafon, plafond, eternit, gypsum board, GRC board, drop ceiling, plafon jebol, plafon bocor, ganti plafon, pasang plafon, langit-langit
-- "wall"           → plester, aci, acian, plesteran dinding, dinding retak, tambal dinding, perbaiki dinding, screeding, nat plester
-- "electrical"     → listrik, kabel listrik, stopkontak, saklar, MCB, panel listrik, instalasi listrik, titik lampu, grounding, daya listrik
-- "plumbing"       → pipa air, kran, wastafel, toilet, closet, saluran air, bak mandi, shower, water heater, pompa air, septik tank
-- "roofing"        → atap bocor, genteng, talang air, rangka atap, baja ringan, asbes atap, renovasi atap, ganti genteng
-- "waterproofing"  → waterproof, anti bocor, coating anti air, pelapis dak, bocor dak beton, sealant, injeksi beton
-- "carpentry"      → pintu kayu, kusen pintu kayu, daun pintu, ganti pintu (kayu/PVC), partisi kayu, panel kayu
-- "window"         → jendela, kusen jendela, ganti jendela, teralis, jalusi, jendela aluminium, jendela UPVC, kaca jendela, bouvenlight
-- "flooring_wood"  → lantai kayu, parket, vinyl lantai, SPC floor, laminate floor, floor ing kayu, wood floor, lantai vinyl
-- "cabinet"        → lemari, wardrobe, lemari tanam, lemari pakaian, lemari built-in, rak dinding, kabinet dinding, lemari custom
-- "carport"        → kanopi, carport, garasi atap, kanopi baja ringan, atap polycarbonate, atap garasi, pergola
-- "fence"          → pagar, pagar bata, pagar besi, pagar tembok, pagar hollow, bikin pagar, tembok pagar, pagar depan rumah
-- "demolition"     → bongkar, bongkaran, robohkan, hancurkan, demolisi, buka dinding, buang dinding lama, rombak, kupas
-- "insulation"     → insulasi, peredam panas, peredam suara, glasswool, rockwool, foam insulasi, atap panas, aluminium foil atap
-- "wallpaper"      → wallpaper, wall panel, wainscoting, panel dinding, wallcovering, stiker dinding dekoratif, vinyl wall
+job_types (array, ambil SEMUA yang relevan):
+"painting"→cat/ngecat/repaint/pengecatan
+"ceramic"→keramik lantai/ubin lantai/granit lantai
+"wall_tile"→keramik dinding/tile dinding/mozaik dinding
+"ceiling"→plafon/plafond/eternit/gypsum ceiling/langit-langit
+"wall"→plester/aci/acian/dinding retak/tambal dinding
+"electrical"→listrik/kabel/stopkontak/titik lampu/instalasi listrik
+"plumbing"→pipa/kran/toilet/closet/wastafel/shower/saluran air
+"roofing"→atap bocor/genteng/talang/rangka atap
+"waterproofing"→waterproof/anti bocor/coating/pelapis dak
+"carpentry"→pintu kayu/daun pintu/kusen kayu/partisi kayu
+"window"→jendela/teralis/kusen aluminium/UPVC
+"flooring_wood"→lantai kayu/parket/vinyl lantai/SPC/laminate
+"cabinet"→lemari/wardrobe/built-in/rak dinding
+"carport"→kanopi/carport/garasi/polycarbonate
+"fence"→pagar/pagar bata/pagar besi/tembok pagar
+"demolition"→bongkar/robohkan/rombak/kupas
+"insulation"→insulasi/peredam panas/glasswool/rockwool
+"wallpaper"→wallpaper/wall panel/wainscoting/vinyl wall
 
-ATURAN KRITIS (jangan sampai salah):
-- "plafon/plafond/eternit/gypsum langit-langit" → "ceiling" (BUKAN "carpentry")
-- "jendela/kusen jendela/teralis" → "window" (BUKAN "carpentry")
-- "keramik dinding/mozaik dinding" → "wall_tile" (BUKAN "ceramic")
-- "keramik lantai/granit lantai" → "ceramic" (BUKAN "wall_tile")
-- "lantai vinyl/parket/kayu" → "flooring_wood" (BUKAN "ceramic")
-- "lemari/wardrobe/rak built-in" → "cabinet" (BUKAN "carpentry")
-- "kanopi/carport/garasi atap" → "carport" (BUKAN "roofing")
-- "bongkar/demolisi" → "demolition" (tambahkan selain job type utama)
-- "pagar" → "fence" (BUKAN "carpentry")
-- Quality: "premium/mewah/bagus/berkualitas/impor/branded/kelas atas" → "premium"
-- Quality: "ekonomi/murah/biasa/seadanya/budget" → "ekonomi"
-- Quality: "standar/normal/sedang/menengah" → "standar"
-- Scope: "total/full/semua/bongkar semua/rombak total/dari nol" → "full"
-- Scope: "touch up/sedikit/ringan/minor/sebagian kecil" → "light"
-- Dimensi "4x5", "4mx5m", "4 x 5 meter", "4 kali 5" → area_m2 = 20
-- Budget/harga yang disebutkan → ABAIKAN, jangan jadikan job type
+Aturan:
+- plafon→"ceiling" BUKAN "carpentry"
+- jendela→"window" BUKAN "carpentry"
+- keramik dinding→"wall_tile", keramik lantai→"ceramic"
+- vinyl/parket→"flooring_wood" BUKAN "ceramic"
+- lemari/wardrobe→"cabinet" BUKAN "carpentry"
+- kanopi→"carport" BUKAN "roofing"
+- quality: premium/mewah/bagus→"premium", ekonomi/murah→"ekonomi", standar/normal→"standar"
+- scope: total/full/bongkar semua→"full", touch up/ringan→"light"
+- dimensi 4x5/4mx5m→area_m2=20
+- room: kamar mandi→"bathroom", dapur→"kitchen", kamar tidur→"bedroom", ruang tamu→"living_room", atap→"roof"
+- PENTING: ekstrak HANYA job type yang EKSPLISIT disebutkan user. JANGAN inferring "wall", "cabinet", "window", "fence", "demolition" dari kata "renovasi total" atau "semua". Hanya tambahkan jika user benar-benar menyebutnya.
 
-CONTOH (few-shot):
+Contoh:
 Input: "cat ulang kamar tidur 12m2, ganti plafon gypsum, pasang vinyl lantai"
-Output: {{"job_types": ["painting", "ceiling", "flooring_wood"], "area_m2": 12, "quality": null, "location": null, "scope": null, "room": "bedroom"}}
+Output: {{"job_types":["painting","ceiling","flooring_wood"],"area_m2":12,"quality":null,"location":null,"scope":null,"room":"bedroom"}}
 
-Input: "renovasi total kamar mandi 3x2m premium di Surabaya"
-Output: {{"job_types": ["plumbing", "ceramic", "wall_tile", "electrical", "waterproofing", "ceiling"], "area_m2": 6, "quality": "premium", "location": "surabaya", "scope": "full", "room": "bathroom"}}
+Input: "renovasi total kamar mandi 3x2m premium Surabaya, bongkar semua"
+Output: {{"job_types":["plumbing","ceramic","wall_tile","electrical","waterproofing","ceiling","demolition"],"area_m2":6,"quality":"premium","location":"surabaya","scope":"full","room":"bathroom"}}
 
-Input: "bikin pagar tembok depan rumah 10m, bongkar pagar lama dulu"
-Output: {{"job_types": ["fence", "demolition"], "area_m2": null, "quality": null, "location": null, "scope": null, "room": null}}
+Input: "{text}"
+JSON:"""
 
-Input: "pasang wallpaper kamar anak, lemari built-in, cat dinding warna pastel, 4x4 meter"
-Output: {{"job_types": ["wallpaper", "cabinet", "painting"], "area_m2": 16, "quality": null, "location": null, "scope": null, "room": "bedroom"}}
 
-Input: "plafon kamar bocor jebol, dinding retak-retak, mau sekalian pasang insulasi biar ga panas, 20m2"
-Output: {{"job_types": ["ceiling", "wall", "insulation"], "area_m2": 20, "quality": null, "location": null, "scope": null, "room": null}}
+# Keyword validation — at least ONE keyword must appear in text
+JOB_KEYWORDS: dict[str, list[str]] = {
+    "painting":      ["cat ", "ngecat", "repaint", "poles", "pengecatan", "warna tembok", "warna dinding"],
+    "ceramic":       ["keramik lantai", "ubin lantai", "granit lantai", "ganti lantai keramik", "pasang lantai keramik"],
+    "wall_tile":     ["keramik dinding", "ubin dinding", "tile dinding", "mozaik dinding", "keramik kamar mandi"],
+    "ceiling":       ["plafon", "plafond", "eternit", "gypsum board", "langit-langit", "grc board"],
+    "wall":          ["plester", " aci ", "acian", "dinding retak", "tambal dinding", "screeding", "plesteran"],
+    "electrical":    ["listrik", "kabel listrik", "stopkontak", "titik lampu", "instalasi listrik", "kelistrikan", "perlampu", "lampu pasang", "panel listrik"],
+    "plumbing":      ["pipa", "kran", "wastafel", "toilet", "closet", "saluran air", "bak mandi", "shower", "pompa air"],
+    "roofing":       ["atap", "genteng", "talang", "rangka atap", "baja ringan", "asbes"],
+    "waterproofing": ["waterproof", "anti bocor", "coating", "pelapis dak", "bocor dak", "sealant"],
+    "carpentry":     ["pintu", "kusen", "daun pintu", "ganti pintu", "partisi kayu"],
+    "window":        ["jendela", "teralis", "kusen jendela", "bouvenlight", "jalusi"],
+    "flooring_wood": ["lantai kayu", "parket", "vinyl lantai", "spc floor", "laminate", "lantai vinyl", "wood floor"],
+    "cabinet":       ["lemari", "wardrobe", "built-in", "rak dinding", "kabinet dinding", "lemari custom"],
+    "carport":       ["kanopi", "carport", "garasi", "polycarbonate", "pergola"],
+    "fence":         ["pagar", "tembok pagar", "bikin pagar"],
+    "demolition":    ["bongkar", "robohkan", "rombak", "kupas", "demolisi"],
+    "insulation":    ["insulasi", "peredam panas", "glasswool", "rockwool", "foam insulasi"],
+    "wallpaper":     ["wallpaper", "wall panel", "wainscoting", "vinyl wall"],
+}
 
-Input teks renovasi: "{text}"
+# Special case: "ganti lantai" alone → ceramic (default) unless vinyl/parket specified
+FLOOR_KEYWORDS_WOOD = ["vinyl", "parket", "kayu", "spc", "laminate", "wood"]
+FLOOR_KEYWORDS_ANY  = ["ganti lantai", "lantai baru", "pasang lantai"]
 
-JSON output:"""
+
+def _validate_and_enrich_job_types(job_types: list[str], text: str) -> list[str]:
+    """
+    Two-pass validation:
+    1. Remove job types with no matching keywords in text
+    2. Add job types whose keywords ARE in text but LLM missed
+    """
+    text_lower = text.lower()
+    result = []
+
+    # Pass 1: keep only job types with keyword evidence
+    for jt in job_types:
+        keywords = JOB_KEYWORDS.get(jt, [])
+        if not keywords:
+            result.append(jt)  # unknown type, keep as-is
+            continue
+        if any(kw in text_lower for kw in keywords):
+            result.append(jt)
+        else:
+            logger.info(f"[keyword-filter] Removed '{jt}' — no keyword found in text")
+
+    # Pass 2: add missed job types that have keyword evidence
+    for jt, keywords in JOB_KEYWORDS.items():
+        if jt in result:
+            continue
+        if any(kw in text_lower for kw in keywords):
+            result.append(jt)
+            logger.info(f"[keyword-filter] Added missed '{jt}' — keyword found in text")
+
+    # Special case: "ganti lantai" without specific material
+    if any(kw in text_lower for kw in FLOOR_KEYWORDS_ANY):
+        has_wood = any(kw in text_lower for kw in FLOOR_KEYWORDS_WOOD)
+        if has_wood and "flooring_wood" not in result:
+            result.append("flooring_wood")
+        elif not has_wood and "ceramic" not in result and "flooring_wood" not in result:
+            result.append("ceramic")  # default to ceramic if unspecified
+
+    # Deduplicate preserving order
+    seen = []
+    for jt in result:
+        if jt not in seen:
+            seen.append(jt)
+    return seen
 
 
 def _parse_llm_response(raw: str) -> dict | None:
@@ -160,6 +207,17 @@ def extract_from_text(text: str) -> dict | None:
                         w = float(match.group(1))
                         h = float(match.group(2))
                         parsed['area_m2'] = w * h
+
+                # Validate and enrich job types with keyword matching
+                if "job_types" in parsed and isinstance(parsed["job_types"], list):
+                    original = parsed["job_types"][:]
+                    parsed["job_types"] = _validate_and_enrich_job_types(
+                        parsed["job_types"], text
+                    )
+                    if parsed["job_types"] != original:
+                        logger.info(
+                            f"[keyword-filter] job_types: {original} → {parsed['job_types']}"
+                        )
 
                 logger.info(f"LLM extraction success on attempt {attempt}: {parsed}")
                 return parsed

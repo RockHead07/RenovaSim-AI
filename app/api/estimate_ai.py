@@ -53,7 +53,7 @@ def estimate_ai(request: EstimateAIRequest) -> EstimateAIResponse:
         # Step 4: Re-parse with merged data
         final_parsed = parse_input(
             description=request.text,
-            area=merged.get("area_m2") or merged.get("area"),
+            area=merged.get("area_m2") or merged.get("area") or request.area_hint,
             job_type=merged.get("job_type"),
             quality=merged.get("quality"),
             location=merged.get("location"),

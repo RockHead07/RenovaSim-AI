@@ -12,27 +12,27 @@ JOB_BUNDLE: dict[str, dict[ScopeLevel, list[str]]] = {
     "bathroom": {
         "light":  ["plumbing"],
         "medium": ["plumbing", "ceramic", "wall_tile"],
-        "full":   ["plumbing", "ceramic", "wall_tile", "electrical", "waterproofing", "ceiling"],
+        "full":   ["plumbing", "ceramic", "wall_tile", "electrical", "waterproofing"],
     },
     "kitchen": {
         "light":  ["ceramic"],
-        "medium": ["ceramic", "wall_tile", "plumbing"],
-        "full":   ["ceramic", "wall_tile", "plumbing", "electrical", "ceiling", "painting"],
+        "medium": ["ceramic", "plumbing"],
+        "full":   ["ceramic", "plumbing", "electrical", "wall_tile"],
     },
     "bedroom": {
         "light":  ["painting"],
-        "medium": ["painting", "ceiling", "electrical"],
-        "full":   ["painting", "ceiling", "electrical", "flooring_wood", "cabinet", "carpentry"],
+        "medium": ["painting", "ceiling"],
+        "full":   ["painting", "ceiling", "electrical", "flooring_wood"],
     },
     "living_room": {
         "light":  ["painting"],
-        "medium": ["painting", "ceiling", "ceramic"],
-        "full":   ["painting", "ceiling", "ceramic", "electrical", "carpentry", "wall_tile"],
+        "medium": ["painting", "ceiling"],
+        "full":   ["painting", "ceiling", "ceramic", "electrical"],
     },
     "roof": {
         "light":  ["roofing"],
         "medium": ["roofing", "waterproofing"],
-        "full":   ["roofing", "waterproofing", "insulation", "ceiling"],
+        "full":   ["roofing", "waterproofing", "insulation"],
     },
 }
 

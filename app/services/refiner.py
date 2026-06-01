@@ -33,14 +33,27 @@ def refine_estimate(
 
     project_name = previous_response.get("project_name", "Proyek Renovasi")
 
-    # Extract previous assumptions
+    # Extract previous assumptions (assumed fields only)
     prev_assumptions = {
         item["field"]: item["value"]
         for item in previous_response.get("assumptions", [])
     }
 
-    # Merge: corrections override previous assumptions
-    merged = {**prev_assumptions, **corrections}
+    # Also extract confirmed values from top-level response
+    # These are fields detected by LLM (not assumed), so NOT in assumptions array
+    prev_confirmed = {}
+    if previous_response.get("quality"):
+        prev_confirmed["quality"] = previous_response["quality"]
+    if previous_response.get("location") and previous_response["location"] != "default":
+        prev_confirmed["location"] = previous_response["location"]
+    if previous_response.get("breakdown"):
+        first = previous_response["breakdown"][0]
+        if first.get("area"):
+            prev_confirmed["area"] = first["area"]
+
+    # Merge priority: confirmed < assumed < corrections
+    # corrections always win, then assumed, then confirmed
+    merged = {**prev_confirmed, **prev_assumptions, **corrections}
 
     # Extract previous job types from breakdown
     breakdown = previous_response.get("breakdown", [])
