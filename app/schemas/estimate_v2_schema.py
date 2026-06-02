@@ -3,7 +3,7 @@
 # Request/response schemas for the v2 estimation endpoint.
 # ---------------------------------------------------------------------------
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Literal
 
 
@@ -97,14 +97,25 @@ class RefineResponse(EstimateV2Response):
 class EstimateAIRequest(BaseModel):
     """Request for AI-powered free-text estimation."""
     project_name: str = Field(default="Proyek Renovasi", description="Nama project")
-    text: str = Field(
-        ...,
-        min_length=3,
+    text: str | None = Field(
+        default=None,
         description="Deskripsi renovasi dalam bahasa bebas",
         examples=["mau cat ruang tamu 4x5 pakai cat bagus di jakarta"],
     )
+    description: str | None = Field(
+        default=None,
+        description="Alias untuk 'text' — diterima untuk kompatibilitas Laravel",
+    )
     budget: float | None = Field(default=None, gt=0, description="Budget opsional untuk sanity check")
     area_hint: float | None = Field(default=None, gt=0, description="Optional area hint from session / previous estimation")
+
+    @model_validator(mode="after")
+    def resolve_text_field(self) -> "EstimateAIRequest":
+        if not self.text and self.description:
+            self.text = self.description
+        if not self.text or len(self.text.strip()) < 3:
+            raise ValueError("Field 'text' atau 'description' wajib diisi (minimal 3 karakter)")
+        return self
 
 
 class EstimateAIResponse(EstimateV2Response):
