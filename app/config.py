@@ -4,6 +4,7 @@
 # Import `settings` anywhere in the app — never read os.environ directly.
 # ---------------------------------------------------------------------------
 
+import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,6 +30,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=True,
+        extra="ignore",
     )
 
     def get_cors_origins(self) -> list[str]:
@@ -36,4 +38,25 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-TIMEOUT = 240.0
+
+# ---------------------------------------------------------------------------
+# LLM / AI Providers
+# ---------------------------------------------------------------------------
+# Load .env manually for os.getenv() calls
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+# Groq (OpenAI-compatible)
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_MODEL   = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_URL     = "https://api.groq.com/openai/v1/chat/completions"
+USE_GROQ     = os.getenv("USE_GROQ", "true").lower() == "true"
+
+# Ollama (local fallback)
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
+
+# Generic timeout (used by some services)
+TIMEOUT = float(os.getenv("TIMEOUT", "240.0"))
