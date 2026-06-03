@@ -50,6 +50,7 @@ class AssumptionField:
 class AssumptionResult:
     def __init__(self):
         self.area: AssumptionField | None = None
+        self.job_type: AssumptionField | None = None
         self.job_types: list[str] = []
         self.quality: AssumptionField | None = None
         self.location: AssumptionField | None = None
@@ -109,13 +110,34 @@ def build_assumptions(
     if explicit_job_types:
         # LLM extracted multiple job types explicitly — use them directly
         result.job_types = explicit_job_types
+        result.job_type = AssumptionField(
+            value=explicit_job_types[0] if explicit_job_types else None,
+            source="confirmed",
+            confidence=1.0,
+            impact="high",
+            reason="Pekerjaan diekstrak secara eksplisit",
+        )
         logger.debug(f"Using explicit job_types from LLM: {explicit_job_types}")
     elif parsed.job_type:
         result.job_types = [parsed.job_type]
+        result.job_type = AssumptionField(
+            value=parsed.job_type,
+            source="confirmed",
+            confidence=1.0,
+            impact="high",
+            reason="Pekerjaan dipilih secara eksplisit",
+        )
     elif parsed.room:
         scope = parsed.scope or "medium"
         jobs = get_jobs_for_bundle(parsed.room, scope)
         result.job_types = jobs
+        result.job_type = AssumptionField(
+            value=jobs[0] if jobs else None,
+            source="inferred",
+            confidence=0.80,
+            impact="high",
+            reason=f"Pekerjaan dideteksi dari ruangan '{parsed.room}'",
+        )
         result.scope = AssumptionField(
             value=scope,
             source="inferred" if parsed.scope != "medium" else "assumed",
@@ -126,6 +148,14 @@ def build_assumptions(
     else:
         # No job type detected — cannot proceed without clarification
         result.job_types = []
+        result.job_type = AssumptionField(
+            value=None,
+            source="assumed",
+            confidence=0.0,
+            impact="high",
+            reason="Pekerjaan tidak ditentukan",
+            needs_clarification=True,
+        )
 
     # --- Quality ---
     if parsed.quality:
@@ -172,20 +202,27 @@ def build_assumptions(
         elif assumption and assumption.source == "inferred":
             score += weight * assumption.confidence
 
-    # Hard cap: critical fields not confirmed = max 50%
+    # Hard cap: only if critical fields are fully assumed (not inferred from text)
     for field in CRITICAL_FIELDS:
         assumption = getattr(result, field, None)
-        if assumption and assumption.source != "confirmed":
-            score = min(score, 0.50)
+        if assumption and assumption.source == "assumed":
+            score = min(score, 0.60)  # softer cap for assumed
             break
+        elif assumption and assumption.source == "missing":
+            score = min(score, 0.40)  # hard cap only if missing
+            break
+
+    # Bonus: LLM confirmed multiple job types explicitly
+    if len(result.job_types) >= 3 and not result.scope:
+        score = min(score + 0.10, 1.0)  # bonus for rich input
 
     result.confidence_score = round(score, 2)
 
     # Human-readable confidence
-    if result.confidence_score > 0.75:
+    if result.confidence_score >= 0.75:
         result.confidence_label = "Tinggi"
         result.confidence_message = "Estimasi cukup akurat"
-    elif result.confidence_score >= 0.50:
+    elif result.confidence_score >= 0.55:
         result.confidence_label = "Sedang"
         result.confidence_message = "Estimasi perlu beberapa asumsi"
     else:
